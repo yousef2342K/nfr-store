@@ -8,7 +8,12 @@
     "dev": "nodemon server.js",
     "seed": "node scripts/seedAdmin.js",
     "dev:auto": "node scripts/seedAdmin.js && nodemon server.js",
-    "dev:force": "node scripts/seedAdmin.js && npm run dev"
+    "dev:force": "node scripts/seedAdmin.js && npm run dev",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f app",
+    "docker:build": "docker-compose build",
+    "docker:restart": "docker-compose restart app"
   },
   "keywords": ["ecommerce", "fashion", "nfr"],
   "author": "NFR Brand",
