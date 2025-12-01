@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log
+.env
+.git
+.gitignore
+README.md
+PRODUCTION_CHECKLIST.md
+data/
+uploads/
+*.log
+.vscode
+.idea
