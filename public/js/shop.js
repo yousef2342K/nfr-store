@@ -87,17 +87,13 @@ async function loadProducts() {
         const grid = document.getElementById('productsGrid');
         grid.innerHTML = '<div class="loading">Loading products...</div>';
 
-        let endpoint = '/products';
-        const params = new URLSearchParams();
+        const params = {};
 
-        if (currentFilters.category) params.append('category', currentFilters.category);
-        if (currentFilters.featured) params.append('featured', 'true');
-        if (currentFilters.search) params.append('search', currentFilters.search);
+        if (currentFilters.category) params.category = currentFilters.category;
+        if (currentFilters.featured) params.featured = 'true';
+        if (currentFilters.search) params.search = currentFilters.search;
 
-        const queryString = params.toString();
-        if (queryString) endpoint += '?' + queryString;
-
-        const data = await api.products.getAll(endpoint);
+        const data = await api.products.getAll(params);
         allProducts = data.products || [];
         applyFilters();
 

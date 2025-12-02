@@ -29,8 +29,12 @@ class Cart {
     add(product, size, color, quantity = 1) {
         // Require login for cart
         if (!auth.isLoggedIn()) {
-            alert('Please login to add items to cart');
-            window.location.href = '/login.html?redirect=' + window.location.pathname;
+            if (typeof toast !== 'undefined') {
+                toast.warning('Please login to add items to your cart', 'Login Required');
+            }
+            setTimeout(() => {
+                window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname);
+            }, 1500);
             return;
         }
 
@@ -92,6 +96,14 @@ class Cart {
         }, 0);
     }
 
+    getItems() {
+        return this.items;
+    }
+
+    getFormattedTotal() {
+        return this.getTotal().toFixed(2);
+    }
+
     getCount() {
         return this.items.reduce((count, item) => count + item.quantity, 0);
     }
@@ -111,6 +123,11 @@ class Cart {
     }
 
     showNotification(message) {
+        if (typeof toast !== 'undefined') {
+            toast.success(message);
+            return;
+        }
+        
         const notification = document.createElement('div');
         notification.className = 'cart-notification';
         notification.innerHTML = `

@@ -1,9 +1,25 @@
 // Checkout Page JavaScript
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Require login for checkout
+    if (!auth.isLoggedIn()) {
+        if (typeof toast !== 'undefined') {
+            toast.warning('Please login to proceed with checkout', 'Login Required');
+        }
+        setTimeout(() => {
+            window.location.href = '/login.html?redirect=/checkout.html';
+        }, 1500);
+        return;
+    }
+
     // Redirect if cart is empty
     if (cart.items.length === 0) {
-        window.location.href = '/shop.html';
+        if (typeof toast !== 'undefined') {
+            toast.warning('Your cart is empty', 'Cart Empty');
+        }
+        setTimeout(() => {
+            window.location.href = '/shop.html';
+        }, 1000);
         return;
     }
 
@@ -48,8 +64,10 @@ function displayOrderSummary() {
 
     document.getElementById('orderItems').innerHTML = itemsHTML;
 
+    const freeShippingThreshold = window.CONFIG?.FREE_SHIPPING_THRESHOLD || 100;
+    const shippingCost = window.CONFIG?.STANDARD_SHIPPING_COST || 10;
     const subtotal = cart.getTotal();
-    const shipping = subtotal >= 100 ? 0 : 10;
+    const shipping = subtotal >= freeShippingThreshold ? 0 : shippingCost;
     const total = subtotal + shipping;
 
     document.getElementById('subtotalAmount').textContent = `$${subtotal.toFixed(2)}`;
@@ -88,39 +106,42 @@ function setupCheckoutForm() {
         };
 
         try {
-            // If user is logged in, create order in database
-            if (auth.isLoggedIn()) {
-                const result = await api.orders.create(orderData);
+            // User must be logged in (checked on page load)
+            const result = await api.orders.create(orderData);
+            
+            if (result.success) {
+                // Generate WhatsApp message with order details and pricing
+                const whatsappMessage = generateWhatsAppMessage(result.order, shippingAddress);
                 
-                if (result.success) {
-                    // Generate WhatsApp message
-                    const whatsappMessage = generateWhatsAppMessage(result.order, shippingAddress);
-                    sendWhatsAppOrder(whatsappMessage);
-                    
-                    // Clear cart
-                    cart.clear();
-                    
-                    // Redirect to success page
-                    window.location.href = `/orders.html?success=true&orderId=${result.order.orderNumber}`;
-                } else {
-                    alert('Error creating order: ' + result.message);
-                }
-            } else {
-                // Guest checkout - direct to WhatsApp
-                const whatsappMessage = generateWhatsAppMessageGuest(orderData, shippingAddress);
+                // Send order to WhatsApp
                 sendWhatsAppOrder(whatsappMessage);
                 
                 // Clear cart
                 cart.clear();
                 
                 // Show success message
-                alert('Your order has been sent via WhatsApp! We will contact you shortly.');
-                window.location.href = '/';
+                if (typeof toast !== 'undefined') {
+                    toast.success('Order created successfully! Opening WhatsApp...');
+                }
+                
+                // Redirect to success page after WhatsApp opens
+                setTimeout(() => {
+                    window.location.href = `/orders.html?success=true&orderId=${result.order.orderNumber}`;
+                }, 1500);
+            } else {
+                if (typeof toast !== 'undefined') {
+                    toast.error(result.message || 'Error creating order');
+                } else {
+                    alert('Error creating order: ' + result.message);
+                }
             }
-
         } catch (error) {
             console.error('Checkout error:', error);
-            alert('Error processing order. Please try again.');
+            if (typeof toast !== 'undefined') {
+                toast.error('Error processing order. Please try again.');
+            } else {
+                alert('Error processing order. Please try again.');
+            }
         }
     });
 }
@@ -136,8 +157,10 @@ function generateWhatsAppMessage(order, address) {
         message += `   Qty: ${item.quantity} × $${item.product.price} = $${(item.quantity * item.product.price).toFixed(2)}\n\n`;
     });
 
+    const freeShippingThreshold = window.CONFIG?.FREE_SHIPPING_THRESHOLD || 100;
+    const shippingCost = window.CONFIG?.STANDARD_SHIPPING_COST || 10;
     const subtotal = cart.getTotal();
-    const shipping = subtotal >= 100 ? 0 : 10;
+    const shipping = subtotal >= freeShippingThreshold ? 0 : shippingCost;
     const total = subtotal + shipping;
 
     message += `💰 *Order Summary:*\n`;
@@ -167,8 +190,10 @@ function generateWhatsAppMessageGuest(orderData, address) {
         message += `   Qty: ${item.quantity} × $${item.product.price} = $${(item.quantity * item.product.price).toFixed(2)}\n\n`;
     });
 
+    const freeShippingThreshold = window.CONFIG?.FREE_SHIPPING_THRESHOLD || 100;
+    const shippingCost = window.CONFIG?.STANDARD_SHIPPING_COST || 10;
     const subtotal = cart.getTotal();
-    const shipping = subtotal >= 100 ? 0 : 10;
+    const shipping = subtotal >= freeShippingThreshold ? 0 : shippingCost;
     const total = subtotal + shipping;
 
     message += `💰 *Order Summary:*\n`;
@@ -193,10 +218,11 @@ function generateWhatsAppMessageGuest(orderData, address) {
 }
 
 function sendWhatsAppOrder(message) {
-    // Replace with your actual WhatsApp business number
-    const whatsappNumber = '+1234567890'; // Update this in production
+    // Get WhatsApp number from config
+    const whatsappNumber = window.CONFIG?.WHATSAPP_NUMBER || '1234567890';
     const encodedMessage = encodeURIComponent(message);
     const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
     
+    // Open WhatsApp in new tab
     window.open(whatsappURL, '_blank');
 }

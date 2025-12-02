@@ -23,28 +23,45 @@
             </div>
 
             <div class="nav-actions">
-                <button class="icon-btn" id="searchBtn">
-                    <i class="fas fa-search"></i>
-                </button>
-                <a href="/cart.html" class="icon-btn cart-btn active">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span class="cart-count" id="cartCount">0</span>
-                </a>
-                <button class="icon-btn" id="userBtn">
-                    <i class="fas fa-user"></i>
-                </button>
+                <!-- Auth Actions (Login/Register) - Show when NOT logged in -->
+                <div class="auth-actions" style="display: flex;">
+                    <a href="/login.html" class="btn-secondary">Login</a>
+                    <a href="/register.html" class="btn-primary">Register</a>
+                </div>
+
+                <!-- User Menu - Show when logged in -->
+                <div class="user-menu" style="display: none;">
+                    <a href="/cart.html" class="nav-icon active">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count">0</span>
+                    </a>
+                    <div class="user-dropdown">
+                        <button class="user-btn">
+                            <i class="fas fa-user-circle"></i>
+                            <span class="user-name">User</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a href="/orders.html" class="dropdown-item">
+                                <i class="fas fa-box"></i> My Orders
+                            </a>
+                            <a href="/admin.html" class="dropdown-item admin-only" style="display: none;">
+                                <i class="fas fa-shield-alt"></i> Admin Dashboard
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="#" id="logoutBtn" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
                 <button class="menu-toggle" id="menuToggle">
                     <i class="fas fa-bars"></i>
                 </button>
             </div>
         </div>
     </nav>
-
-    <!-- User Dropdown -->
-    <div class="user-dropdown" id="userDropdown">
-        <div class="user-info" id="userInfo"></div>
-        <div class="dropdown-links" id="dropdownLinks"></div>
-    </div>
 
     <!-- Page Header -->
     <div class="page-header">
@@ -104,6 +121,7 @@
             </div>
         </div>
     </footer>
+    <script src="/js/config.js"></script>
     <script src="/js/toast.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/cart.js"></script>
@@ -111,6 +129,17 @@
     <script>
         // Cart Page Specific Logic
         document.addEventListener('DOMContentLoaded', () => {
+            // Check if user is logged in
+            if (!auth.isLoggedIn()) {
+                if (typeof toast !== 'undefined') {
+                    toast.warning('Please login to view your cart', 'Login Required');
+                }
+                setTimeout(() => {
+                    window.location.href = '/login.html?redirect=/cart.html';
+                }, 1500);
+                return;
+            }
+
             displayCart();
             updateCartCount();
         });
@@ -151,18 +180,18 @@
                                     <p class="item-price">$${item.product.price.toFixed(2)}</p>
                                 </div>
                                 <div class="item-quantity">
-                                    <button onclick="cart.updateQuantity(${index}, ${item.quantity - 1}); displayCart();">
+                                    <button onclick="cart.update('${item.product._id}', '${item.size}', '${item.color}', ${item.quantity - 1}); displayCart();">
                                         <i class="fas fa-minus"></i>
                                     </button>
                                     <span>${item.quantity}</span>
-                                    <button onclick="cart.updateQuantity(${index}, ${item.quantity + 1}); displayCart();">
+                                    <button onclick="cart.update('${item.product._id}', '${item.size}', '${item.color}', ${item.quantity + 1}); displayCart();">
                                         <i class="fas fa-plus"></i>
                                     </button>
                                 </div>
                                 <div class="item-total">
                                     $${(item.product.price * item.quantity).toFixed(2)}
                                 </div>
-                                <button class="item-remove" onclick="cart.remove(${index}); displayCart();">
+                                <button class="item-remove" onclick="cart.remove('${item.product._id}', '${item.size}', '${item.color}'); displayCart();">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
