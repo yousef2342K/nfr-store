@@ -3,6 +3,7 @@ class Auth {
     constructor() {
         this.token = localStorage.getItem('token');
         this.user = this.getUser();
+        this.isGuestMode = !this.isLoggedIn();
     }
 
     getUser() {
@@ -12,6 +13,10 @@ class Auth {
 
     isLoggedIn() {
         return !!this.token && !!this.user;
+    }
+
+    isGuest() {
+        return !this.isLoggedIn();
     }
 
     isAdmin() {
@@ -24,13 +29,15 @@ class Auth {
             
             this.token = data.token;
             this.user = data.user;
+            this.isGuestMode = false;
             
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
             
-            // Clear old cart
-            localStorage.removeItem('cart');
+            // Clear guest cart when logging in
             localStorage.removeItem('cart_guest');
+            
+            this.updateUI();
             
             return { success: true, user: data.user };
         } catch (error) {
@@ -44,13 +51,15 @@ class Auth {
             
             this.token = data.token;
             this.user = data.user;
+            this.isGuestMode = false;
             
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
             
-            // Clear old cart
-            localStorage.removeItem('cart');
+            // Clear guest cart when registering
             localStorage.removeItem('cart_guest');
+            
+            this.updateUI();
             
             return { success: true, user: data.user };
         } catch (error) {
@@ -59,18 +68,23 @@ class Auth {
     }
 
     logout() {
+        // Store user ID before clearing
+        const userId = this.user?._id;
+        
         this.token = null;
         this.user = null;
+        this.isGuestMode = true;
         
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         
         // Clear user-specific cart
-        if (this.user) {
-            localStorage.removeItem(`cart_${this.user._id}`);
+        if (userId) {
+            localStorage.removeItem(`cart_${userId}`);
         }
         
-        this.updateUI();
+        // Clear any other user data
+        localStorage.removeItem('cart');
         
         // Show notification
         if (typeof toast !== 'undefined') {
@@ -83,14 +97,24 @@ class Auth {
         }, 500);
     }
 
-    requireAuth() {
+    requireAuth(message = 'Please login to continue') {
         if (!this.isLoggedIn()) {
             if (typeof toast !== 'undefined') {
-                toast.warning('Please login to continue', 'Authentication Required');
+                toast.warning(message, 'Authentication Required');
             }
             setTimeout(() => {
                 window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname);
             }, 1000);
+            return false;
+        }
+        return true;
+    }
+
+    requireUser(message = 'This feature is only available to registered users') {
+        if (this.isGuest()) {
+            if (typeof toast !== 'undefined') {
+                toast.warning(message, 'Login Required');
+            }
             return false;
         }
         return true;
