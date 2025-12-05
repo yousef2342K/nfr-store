@@ -162,3 +162,13 @@ window.addEventListener('cartUpdated', updateCartCount);
 // Update count on page load
 document.addEventListener('DOMContentLoaded', updateCartCount);
 
+// Reload cart when auth state changes (login/logout)
+window.addEventListener('authStateChanged', () => {
+    // Reload cart items from storage based on new auth state
+    cart.items = cart.load();
+    cart.updateCount();
+    
+    // Trigger cart update event to refresh any displays
+    cart.dispatchUpdate();
+});
+
