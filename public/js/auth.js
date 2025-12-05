@@ -39,6 +39,9 @@ class Auth {
             
             this.updateUI();
             
+            // Trigger auth state change event
+            window.dispatchEvent(new CustomEvent('authStateChanged', { detail: { user: data.user } }));
+            
             return { success: true, user: data.user };
         } catch (error) {
             return { success: false, error: error.message };
@@ -61,6 +64,9 @@ class Auth {
             
             this.updateUI();
             
+            // Trigger auth state change event
+            window.dispatchEvent(new CustomEvent('authStateChanged', { detail: { user: data.user } }));
+            
             return { success: true, user: data.user };
         } catch (error) {
             return { success: false, error: error.message };
@@ -78,13 +84,21 @@ class Auth {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         
-        // Clear user-specific cart
-        if (userId) {
-            localStorage.removeItem(`cart_${userId}`);
-        }
+        // Clear user-specific cart - cart stays in storage but won't be accessible without login
+        // Do NOT remove the cart so user can see it when they log back in
+        // if (userId) {
+        //     localStorage.removeItem(`cart_${userId}`);
+        // }
         
-        // Clear any other user data
+        // Clear any guest cart
+        localStorage.removeItem('cart_guest');
         localStorage.removeItem('cart');
+        
+        // Trigger auth state change event BEFORE redirect
+        window.dispatchEvent(new CustomEvent('authStateChanged', { detail: { user: null } }));
+        
+        // Update UI
+        this.updateUI();
         
         // Show notification
         if (typeof toast !== 'undefined') {
